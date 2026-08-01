@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Brasa Burguer - Catálogo Digital</title>
+    <style>
+        :root {
+            --primary: #ff4d00;
+            --secondary: #1a1a1a;
+            --bg: #0a0a0a;
+            --text: #ffffff;
+            --accent: #f39c12;
+            --success: #2ecc71;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 120px; }
+
+        header {
+            width: 100%;
+            overflow: hidden;
+            background: #000;
+            line-height: 0;
+        }
+
+        .logo-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .container { padding: 0 15px; max-width: 500px; margin: auto; }
+
+        .shipping-banner {
+            background: rgba(243, 156, 18, 0.1);
+            border: 1px dashed var(--accent);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 15px 0 20px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .menu-category {
+            margin: 25px 0 15px;
+            font-size: 1.2rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            border-left: 4px solid var(--primary);
+            padding-left: 10px;
+        }
+
+        .product-card {
+            background: var(--secondary);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #333;
+        }
+
+        .product-info { flex: 1; padding-right: 10px; }
+        .product-name { font-size: 1.1rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+        .product-desc { font-size: 0.85rem; color: #bbb; line-height: 1.3; margin-bottom: 8px; }
+        .product-price { font-size: 1.1rem; font-weight: 800; color: var(--success); }
+
+        .add-btn {
+            background: var(--primary);
+            color: white; border: none; width: 45px; height: 45px;
+            border-radius: 12px; font-size: 1.5rem; cursor: pointer;
+        }
+
+        /* Modais */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000;
+        }
+
+        .modal-content {
+            background: #111; margin: 20px auto; padding: 20px; width: 95%;
+            max-width: 450px; border-radius: 20px; max-height: 92vh; display: flex; flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .section-title-modal {
+            font-size: 0.95rem;
+            color: var(--accent);
+            margin: 15px 0 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Modal Personalizar */
+        .extra-option-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .extra-option-item label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .extra-option-item input[type="checkbox"],
+        .extra-option-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .btn-confirm-extra {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .cart-float {
+            position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+            width: 90%; background: var(--primary); padding: 15px 25px;
+            border-radius: 50px; display: none; justify-content: space-between;
+            align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 999;
+            cursor: pointer;
+        }
+
+        .cart-items-container { flex: 1; overflow-y: auto; margin: 15px 0; }
+        
+        .cart-item {
+            display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #222;
+        }
+
+        .qty-controls { display: flex; align-items: center; gap: 10px; }
+        .qty-btn { background: #333; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+
+        .input-group { margin-bottom: 10px; }
+        .input-group label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 5px; }
+        
+        .input-group input, .input-group select {
+            width: 100%; padding: 12px; background: #222; border: 1px solid #444; 
+            color: white; border-radius: 10px; font-size: 16px;
+        }
+
+        .btn-finish {
+            background: #25d366; color: white; width: 100%; border: none; padding: 15px;
+            border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px;
+        }
+
+        .btn-close { background: none; color: #888; border: none; cursor: pointer; }
+        #change-wrapper { display: none; margin-top: 10px; }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8rem;
+            color: #666;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiLvPcc7giHF8JjI_TWDSQGf6CjTWPPrv08UIkg6a3RKknVErXH3c-Rk0E_QodZV6A9i-Zr1N8y5kZG0mEMNlWfhSPr-Yd33NugjJMvv5xf1XbtNP-bptjJkJTxfhGfrJQENLMq7wRiZbL8CeKYMxcuQuGnZViUqlJH2s8PPjeSR_K73R8kPhF4u2kQLH0/s1600/IMG_2749.png" alt="Brasa Burguer Logo" class="logo-img">
+    </header>
+
+    <div class="container">
+        <div class="shipping-banner">
+            🚚 <strong>FRETE GRÁTIS:</strong> Serra Grande<br>
+            📍 Outras regiões: Preço a combinar via WhatsApp
+        </div>
+
+        <h2 class="menu-category">Hambúrgueres</h2>
+        
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Simples</h3>
+                <p class="product-desc">Pão Brioche, Blend 130g na Grelha, Queijo Mussarela, Salada e Cebola</p>
+                <p class="product-price">R$ 22,00</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('Simples', 22.00, 'Pão Brioche, Blend 130g na Grelha, Queijo Mussarela, Salada e Cebola')">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Classic Burguer</h3>
+                <p class="product-desc">Pão Brioche, Blend 130g na Grelha, Queijo Cheddar, Salada e Pasta de Alho</p>
+                <p class="product-price">R$ 26,90</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('Classic Burguer', 26.90, 'Pão Brioche, Blend 130g na Grelha, Queijo Cheddar, Salada e Pasta de Alho')">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Tropical King</h3>
+                <p class="product-desc">Pão Brioche, Blend 130g na Grelha, Queijo Cheddar, Abacaxi na Grelha com Mel</p>
+                <p class="product-price">R$ 26,90</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('Tropical King', 26.90, 'Pão Brioche, Blend 130g na Grelha, Queijo Cheddar, Abacaxi na Grelha com Mel')">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">BBB</h3>
+                <p class="product-desc">Pão Brioche, 2 Blends de 120g, Queijo Cheddar Dobrado, Bacon Defumado</p>
+                <p class="product-price">R$ 30,00</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('BBB', 30.00, 'Pão Brioche, 2 Blends de 120g, Queijo Cheddar Dobrado, Bacon Defumado')">+</button>
+        </div>
+
+        <h2 class="menu-category">King Costela</h2>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">King costela 1</h3>
+                <p class="product-desc">Pão brioche, Blend 130g, costela desfiada, queijo cheddar, geleia de pimenta e alface</p>
+                <p class="product-price">R$ 35,00</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('King costela 1', 35.00, 'Pão brioche, Blend 130g, costela desfiada, queijo cheddar, geleia de pimenta e alface')">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">King costela 2</h3>
+                <p class="product-desc">Pão brioche, Blend 130g, costela desfiada, queijo cheddar, Cream cheese e alface</p>
+                <p class="product-price">R$ 35,00</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('King costela 2', 35.00, 'Pão brioche, Blend 130g, costela desfiada, queijo cheddar, Cream cheese e alface')">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">King costela 3</h3>
+                <p class="product-desc">Pão brioche, Blend 130g, costela desfiada, queijo cheddar, molho barbecue e alface</p>
+                <p class="product-price">R$ 35,00</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('King costela 3', 35.00, 'Pão brioche, Blend 130g, costela desfiada, queijo cheddar, molho barbecue e alface')">+</button>
+        </div>
+
+        <h2 class="menu-category">Combos</h2>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Combo Individual</h3>
+                <p class="product-desc">1 Hambúrguer Simples, 200g Batata Frita com Cheddar Derretido, 1 Refrigerante Lata</p>
+                <p class="product-price">R$ 49,99</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Combo Individual', 49.99)">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Combo Duplo</h3>
+                <p class="product-desc">2 Hambúrgueres Simples, 200g Batata Frita com Cheddar, 1 Refrigerante 1L</p>
+                <p class="product-price">R$ 64,99</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Combo Duplo', 64.99)">+</button>
+        </div>
+
+        <h2 class="menu-category">Bebidas</h2>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Pepsi 1L</h3>
+                <p class="product-desc">Garrafa de 1 Litro</p>
+                <p class="product-price">R$ 7,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Pepsi 1L', 7.00)">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Pepsi lata</h3>
+                <p class="product-desc">Lata 350ml</p>
+                <p class="product-price">R$ 5,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Pepsi lata', 5.00)">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Pepsi lata zero</h3>
+                <p class="product-desc">Lata 350ml Zero Açúcar</p>
+                <p class="product-price">R$ 6,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Pepsi lata zero', 6.00)">+</button>
+        </div>
+
+        <h2 class="menu-category">Adicionais</h2>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Molho Barbecue</h3>
+                <p class="product-desc">Porção extra de molho barbecue</p>
+                <p class="product-price">R$ 4,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Molho Barbecue', 4.00)">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Carne 130g</h3>
+                <p class="product-desc">Blend adicional na grelha</p>
+                <p class="product-price">R$ 8,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Carne 130g', 8.00)">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Abacaxi</h3>
+                <p class="product-desc">Rodela de abacaxi na grelha</p>
+                <p class="product-price">R$ 5,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Abacaxi', 5.00)">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Cebola Caramelizada</h3>
+                <p class="product-desc">Porção de cebola caramelizada</p>
+                <p class="product-price">R$ 8,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Cebola Caramelizada', 8.00)">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Batata 200g</h3>
+                <p class="product-desc">Porção de batata frita 200g</p>
+                <p class="product-price">R$ 25,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Batata 200g', 25.00)">+</button>
+        </div>
+    </div>
+
+    <footer>
+        &copy; Brasa Burguer. Todos os direitos reservados. <br> Desenvolvido por @maxwellber_63
+    </footer>
+
+    <!-- Barra flutuante do carrinho -->
+    <div id="cart-float" class="cart-float" onclick="openModal()">
+        <span>🛒 Ver Pedido</span>
+        <span id="float-total">R$ 0,00</span>
+    </div>
+
+    <!-- Modal de Personalização do Lanche -->
+    <div id="customize-modal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                <div>
+                    <h2 id="custom-burger-title" style="color: var(--primary);">Personalizar Lanche</h2>
+                    <p id="custom-burger-desc" style="font-size: 0.85rem; color: #aaa; margin-top: 4px; line-height: 1.2;"></p>
+                </div>
+                <button class="btn-close" onclick="closeCustomizeModal()">✕</button>
+            </div>
+
+            <!-- 1. Escolha de Adicionais (Primeiro) -->
+            <h3 class="section-title-modal">Deseja Adicionais?</h3>
+            <div class="extra-option-item">
+                <label><input type="checkbox" class="modal-extra-check" value="Molho Barbecue" data-price="4.00"> Molho Barbecue</label>
+                <span style="color: var(--success);">+R$ 4,00</span>
+            </div>
+            <div class="extra-option-item">
+                <label><input type="checkbox" class="modal-extra-check" value="Carne 130g" data-price="8.00"> Carne 130g</label>
+                <span style="color: var(--success);">+R$ 8,00</span>
+            </div>
+            <div class="extra-option-item">
+                <label><input type="checkbox" class="modal-extra-check" value="Abacaxi" data-price="5.00"> Abacaxi</label>
+                <span style="color: var(--success);">+R$ 5,00</span>
+            </div>
+            <div class="extra-option-item">
+                <label><input type="checkbox" class="modal-extra-check" value="Cebola Caramelizada" data-price="8.00"> Cebola Caramelizada</label>
+                <span style="color: var(--success);">+R$ 8,00</span>
+            </div>
+            <div class="extra-option-item">
+                <label><input type="checkbox" class="modal-extra-check" value="Batata 200g" data-price="25.00"> Batata 200g</label>
+                <span style="color: var(--success);">+R$ 25,00</span>
+            </div>
+
+            <!-- 2. Escolha do ponto da carne (Abaixo dos Adicionais) -->
+            <h3 class="section-title-modal">Ponto da Carne</h3>
+            <div class="extra-option-item">
+                <label><input type="radio" name="meat-doneness" value="Ao ponto" checked> Ao Ponto</label>
+            </div>
+            <div class="extra-option-item">
+                <label><input type="radio" name="meat-doneness" value="Mal passado"> Mal Passado</label>
+            </div>
+            <div class="extra-option-item">
+                <label><input type="radio" name="meat-doneness" value="Bem passado"> Bem Passado</label>
+            </div>
+
+            <button class="btn-confirm-extra" onclick="confirmBurgerWithExtras()">Adicionar ao Carrinho</button>
+        </div>
+    </div>
+
+    <!-- Modal do Carrinho / Checkout -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h2>Seu Pedido</h2>
+                <button class="btn-close" onclick="closeModal()">Voltar</button>
+            </div>
+
+            <div id="cart-items" class="cart-items-container"></div>
+
+            <div class="checkout-section">
+                <h3 style="margin-bottom: 10px;">Total: <span id="modal-total">R$ 0,00</span></h3>
+                
+                <div class="input-group">
+                    <input type="text" id="cust-name" placeholder="Seu Nome">
+                </div>
+                <div class="input-group">
+                    <input type="text" id="cust-address" placeholder="Endereço Completo">
+                </div>
+                <div class="input-group">
+                    <label>Forma de Pagamento:</label>
+                    <select id="payment-method" onchange="toggleChange()">
+                        <option value="Pix">Pix</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <div id="change-wrapper" class="input-group">
+                    <input type="number" id="cust-change" placeholder="Troco para quanto?">
+                </div>
+
+                <button class="btn-finish" onclick="checkout()">Finalizar no WhatsApp</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        let currentSelectedBurger = { name: '', price: 0, desc: '' };
+        const myWhatsApp = "5575981021584"; 
+
+        function addToCart(name, price) {
+            const item = cart.find(i => i.name === name);
+            if (item) { item.qty++; } else { cart.push({ name, price, qty: 1 }); }
+            updateUI();
+        }
+
+        function openCustomizeModal(name, price, desc) {
+            currentSelectedBurger = { name, price, desc };
+            document.getElementById('custom-burger-title').innerText = name;
+            document.getElementById('custom-burger-desc').innerText = desc;
+            
+            // Reseta opções
+            document.querySelectorAll('.modal-extra-check').forEach(cb => cb.checked = false);
+            document.querySelector('input[name="meat-doneness"][value="Ao ponto"]').checked = true;
+            
+            document.getElementById('customize-modal').style.display = 'block';
+        }
+
+        function closeCustomizeModal() {
+            document.getElementById('customize-modal').style.display = 'none';
+        }
+
+        function confirmBurgerWithExtras() {
+            const doneness = document.querySelector('input[name="meat-doneness"]:checked').value;
+            const checkboxes = document.querySelectorAll('.modal-extra-check:checked');
+            let selectedExtras = [];
+            let totalPrice = currentSelectedBurger.price;
+
+            checkboxes.forEach(cb => {
+                selectedExtras.push(cb.value);
+                totalPrice += parseFloat(cb.getAttribute('data-price'));
+            });
+
+            let details = `[Ponto: ${doneness}]`;
+            if (selectedExtras.length > 0) {
+                details += ` (+ ${selectedExtras.join(', ')})`;
+            }
+
+            const fullName = `${currentSelectedBurger.name} ${details}`;
+
+            const item = cart.find(i => i.name === fullName);
+            if (item) {
+                item.qty++;
+            } else {
+                cart.push({ name: fullName, price: totalPrice, qty: 1 });
+            }
+
+            closeCustomizeModal();
+            updateUI();
+        }
+
+        function changeQty(index, delta) {
+            cart[index].qty += delta;
+            if (cart[index].qty <= 0) cart.splice(index, 1);
+            updateUI();
+        }
+
+        function toggleChange() {
+            const method = document.getElementById('payment-method').value;
+            document.getElementById('change-wrapper').style.display = (method === 'Dinheiro') ? 'block' : 'none';
+        }
+
+        function updateUI() {
+            const total = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+            const totalStr = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            document.getElementById('cart-float').style.display = cart.length > 0 ? 'flex' : 'none';
+            document.getElementById('float-total').innerText = totalStr;
+            document.getElementById('modal-total').innerText = totalStr;
+
+            const container = document.getElementById('cart-items');
+            container.innerHTML = cart.map((item, index) => `
+                <div class="cart-item">
+                    <div><strong>${item.name}</strong><br><small>R$ ${item.price.toFixed(2)}</small></div>
+                    <div class="qty-controls">
+                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                        <span>${item.qty}</span>
+                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                    </div>
+                </div>
+            `).join('');
+            if (cart.length === 0) closeModal();
+        }
+
+        function openModal() { document.getElementById('cart-modal').style.display = 'block'; }
+        function closeModal() { document.getElementById('cart-modal').style.display = 'none'; }
+
+        function checkout() {
+            const name = document.getElementById('cust-name').value.trim();
+            const addr = document.getElementById('cust-address').value.trim();
+            const payment = document.getElementById('payment-method').value;
+            const changeValue = document.getElementById('cust-change').value;
+
+            if (name === "" || addr === "") {
+                alert("⚠️ Por favor, informe seu Nome e Endereço para entrega!");
+                return;
+            }
+
+            const total = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+            
+            let message = `*PEDIDO BRASA BURGUER*%0A%0A`;
+            message += `*Cliente:* ${name}%0A`;
+            message += `*Endereço:* ${addr}%0A%0A`;
+            message += `*ITENS:*%0A`;
+            
+            cart.forEach(i => {
+                message += `• ${i.qty}x ${i.name} (R$ ${(i.price * i.qty).toFixed(2)})%0A`;
+            });
+            
+            message += `%0A*TOTAL:* R$ ${total.toFixed(2)}`;
+            message += `%0A*PAGAMENTO:* ${payment}`;
+            
+            if(payment === 'Dinheiro' && changeValue) {
+                const valorPago = parseFloat(changeValue);
+                const troco = valorPago - total;
+                if(troco > 0) {
+                    message += `%0A*PAGAR COM:* R$ ${valorPago.toFixed(2)}`;
+                    message += `%0A*LEVAR DE TROCO:* R$ ${troco.toFixed(2)}`;
+                }
+            }
+            
+            message += `%0A%0A*Frete a combinar*`;
+            
+            const finalUrl = `https://api.whatsapp.com/send?phone=${myWhatsApp}&text=${message}`;
+            
+            const win = window.open(finalUrl, '_blank');
+            if (!win) {
+                window.location.href = finalUrl;
+            }
+        }
+    </script>
+</body>
+</html>
