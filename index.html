@@ -226,11 +226,20 @@
 
         <div class="product-card">
             <div class="product-info">
-                <h3 class="product-name">Especial da casa</h3>
-                <p class="product-desc">Pão brioche, queijo cheddar, blend 130g, bacon, geleia de pimenta</p>
+                <h3 class="product-name">Arrepio Doce</h3>
+                <p class="product-desc">Pão brioche, Blend 130g na grelha, Geleia de pimenta, bacon, Salada.</p>
+                <p class="product-price">R$ 25,00</p>
+            </div>
+            <button class="add-btn" onclick="openCustomizeModal('Arrepio Doce', 25.00, 'Pão brioche, Blend 130g na grelha, Geleia de pimenta, bacon, Salada.')">+</button>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Bomba Coalho</h3>
+                <p class="product-desc">Pão brioche, Blend 130g na grelha, Coalho caramelizado, Salada.</p>
                 <p class="product-price">R$ 34,90</p>
             </div>
-            <button class="add-btn" onclick="openCustomizeModal('Especial da casa', 34.90, 'Pão brioche, queijo cheddar, blend 130g, bacon, geleia de pimenta')">+</button>
+            <button class="add-btn" onclick="openCustomizeModal('Bomba Coalho', 34.90, 'Pão brioche, Blend 130g na grelha, Coalho caramelizado, Salada.')">+</button>
         </div>
 
         <h2 class="menu-category">Bebidas</h2>
@@ -263,6 +272,15 @@
         </div>
 
         <h2 class="menu-category">Adicionais</h2>
+
+        <div class="product-card">
+            <div class="product-info">
+                <h3 class="product-name">Coalho</h3>
+                <p class="product-desc">Porção extra de queijo coalho</p>
+                <p class="product-price">R$ 10,00</p>
+            </div>
+            <button class="add-btn" onclick="addToCart('Coalho', 10.00)">+</button>
+        </div>
 
         <div class="product-card">
             <div class="product-info">
@@ -342,6 +360,10 @@
 
             <!-- 1. Escolha de Adicionais (Primeiro) -->
             <h3 class="section-title-modal">Deseja Adicionais?</h3>
+            <div class="extra-option-item">
+                <label><input type="checkbox" class="modal-extra-check" value="Coalho" data-price="10.00"> Coalho</label>
+                <span style="color: var(--success);">+R$ 10,00</span>
+            </div>
             <div class="extra-option-item">
                 <label><input type="checkbox" class="modal-extra-check" value="Molho Barbecue" data-price="4.00"> Molho Barbecue</label>
                 <span style="color: var(--success);">+R$ 4,00</span>
