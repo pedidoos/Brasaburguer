@@ -478,15 +478,19 @@
         </div>
         <div id="printer-settings-view" hidden>
           <h2>Pedidos e impressora</h2>
-          <p>Deixe esta tela aberta no aparelho da loja para receber e imprimir novos pedidos.</p>
+          <p>Pedidos do dia, alerta sonoro, impressão automática e segunda via.</p>
           <div class="printer-status" id="printer-connection-status">Impressora desconectada.</div>
-          <div class="printer-warning">A conexão do navegador exige HTTPS, navegador compatível e impressora Bluetooth BLE/GATT. O aparelho da loja precisa permanecer com esta página aberta. Impressoras Bluetooth clássico/serial podem não funcionar.</div>
+          <div class="printer-warning">O navegador pode suspender Bluetooth e impressão quando a tela apaga ou a página é minimizada. “Manter tela ligada” ajuda enquanto o painel está visível, mas impressão garantida em segundo plano exige um serviço/app Android ou computador dedicado.</div>
           <div class="printer-admin-actions">
             <button type="button" onclick="connectPrinter()">Conectar impressora</button>
             <button type="button" class="secondary" onclick="reconnectPrinter()">Reconectar</button>
             <button type="button" class="secondary" onclick="disconnectPrinter()">Desconectar</button>
           </div>
           <label style="display:flex;align-items:center;gap:9px;margin:15px 0;color:#eee"><input id="printer-auto-print" type="checkbox" checked style="width:18px;height:18px;accent-color:#ff4d00"> Imprimir pedidos novos automaticamente</label>
+          <div class="printer-admin-actions">
+            <button id="printer-sound-toggle" type="button" class="secondary">🔔 Som dos pedidos: ligado</button>
+            <button id="printer-wake-toggle" type="button" class="secondary">Manter tela ligada: desligado</button>
+          </div>
           <div id="printer-settings-message" class="printer-admin-message" role="status"></div>
           <h3 style="color:#f39c12;margin:18px 0 8px;font-size:1rem">Pedidos recentes</h3>
           <div id="printer-orders-list" class="printer-orders-list"><p class="printer-empty">Aguardando pedidos...</p></div>
@@ -497,7 +501,7 @@
 
     <script>
 
-        function openPrinterAdmin(){document.getElementById('printer-admin-overlay').style.display='block';if(window.refreshBrasaPanel)window.refreshBrasaPanel()}
+        function openPrinterAdmin(){document.getElementById('printer-admin-overlay').style.display='block';if(window.brasaUnlockSound)window.brasaUnlockSound();if(window.refreshBrasaPanel)window.refreshBrasaPanel()}
         function closePrinterAdmin(){document.getElementById('printer-admin-overlay').style.display='none'}
         function printerLogout(){if(window.brasaSignOut)window.brasaSignOut()}
         function connectPrinter(){if(window.brasaConnectPrinter)window.brasaConnectPrinter()}
@@ -608,7 +612,7 @@
               createdAt: Date.now(), customerName: name, address: addr, payment,
               changeFor: (payment === 'Dinheiro' && changeValue) ? Math.max(0, Number(changeValue)) : 0,
               items: cart.map(i => ({name: String(i.name), qty: Number(i.qty), price: Number(i.price)})),
-              total: Number(total.toFixed(2)), printStatus: 'pending', printedAt: 0,
+              total: Number(total.toFixed(2)), orderNumber: 0, orderDay: '', printStatus: 'pending', printedAt: 0,
               printingAt: 0, printingBy: '', printError: ''
             };
             let message = `*PEDIDO BRASA BURGUER*%0A%0A`;
@@ -640,7 +644,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
       import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-      import { getDatabase, ref, push, set, onChildAdded, onChildChanged, runTransaction, update } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
+      import { getDatabase, ref, push, set, get, onChildAdded, onChildChanged, runTransaction, update } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
 
       const firebaseConfig = {
         apiKey: 'AIzaSyC4tlqb5zpkE-9dzdk1Jl_01RGGT2xBjJI',
@@ -661,6 +665,11 @@
       let writeCharacteristic = null;
       const orders = new Map();
       const processing = new Set();
+      let orderQueueBusy = false;
+      let audioContext = null;
+      let soundEnabled = localStorage.getItem('brasaOrderSound_v1') !== 'off';
+      let wakeLock = null;
+      let wakeLockWanted = false;
       const printerStoreKey = 'brasaPrinterDevice_v2';
       const printServices = [
         '0000ffe0-0000-1000-8000-00805f9b34fb',
@@ -679,18 +688,66 @@
       function authMessage(text){ $('printer-auth-message').textContent=text||''; }
       function settingsMessage(text){ $('printer-settings-message').textContent=text||''; }
       function showLogin(){ $('printer-login-view').hidden=false; $('printer-settings-view').hidden=true; }
-      function showSettings(){ $('printer-login-view').hidden=true; $('printer-settings-view').hidden=false; updatePrinterStatus(); }
+      function showSettings(){ $('printer-login-view').hidden=true; $('printer-settings-view').hidden=false; updatePrinterStatus(); updateSoundButton(); updateWakeButton(); }
       function updatePrinterStatus(){
         const box=$('printer-connection-status');
         box.textContent=activeDevice?.gatt?.connected ? `Conectada: ${activeDevice.name||'Impressora Bluetooth'}` : 'Impressora desconectada. Os pedidos ficam na fila até conectar.';
       }
+      function unlockOrderSound(){
+        try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;audioContext=audioContext||new Ctx();if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});}catch(e){}
+      }
+      window.brasaUnlockSound=unlockOrderSound;
+      function updateSoundButton(){const b=$('printer-sound-toggle');if(b)b.textContent=soundEnabled?'🔔 Som dos pedidos: ligado':'🔕 Som dos pedidos: desligado'}
+      function playOrderAlert(){
+        if(!soundEnabled)return;
+        try{
+          unlockOrderSound(); if(!audioContext)return;
+          const start=audioContext.currentTime;
+          [880,1175,988,1318].forEach((frequency,index)=>{
+            const osc=audioContext.createOscillator(), gain=audioContext.createGain();
+            osc.type='sawtooth';osc.frequency.value=frequency;gain.gain.setValueAtTime(0.0001,start+index*0.32);
+            gain.gain.exponentialRampToValueAtTime(0.92,start+index*0.32+0.025);
+            gain.gain.exponentialRampToValueAtTime(0.0001,start+index*0.32+0.24);
+            osc.connect(gain);gain.connect(audioContext.destination);osc.start(start+index*0.32);osc.stop(start+index*0.32+0.26);
+          });
+        }catch(e){}
+      }
+      $('printer-sound-toggle').addEventListener('click',()=>{
+        soundEnabled=!soundEnabled;localStorage.setItem('brasaOrderSound_v1',soundEnabled?'on':'off');
+        updateSoundButton();if(soundEnabled){unlockOrderSound();playOrderAlert()}
+      });
+      function updateWakeButton(){const b=$('printer-wake-toggle');if(b)b.textContent=wakeLockWanted?'Tela ativa solicitada':'Manter tela ligada: desligado'}
+      async function requestScreenWakeLock(){
+        if(!navigator.wakeLock){settingsMessage('Este navegador não oferece o recurso de manter a tela ativa.');return}
+        try{wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;updateWakeButton()});wakeLockWanted=true;settingsMessage('Tela mantida ativa enquanto esta página estiver visível.');updateWakeButton()}
+        catch(e){wakeLockWanted=false;settingsMessage('Não foi possível manter a tela ativa. Confira a economia de bateria.');updateWakeButton()}
+      }
+      $('printer-wake-toggle').addEventListener('click',async()=>{
+        if(wakeLockWanted){wakeLockWanted=false;if(wakeLock){await wakeLock.release();wakeLock=null}settingsMessage('Manter tela ativa desligado.');updateWakeButton()}
+        else{wakeLockWanted=true;await requestScreenWakeLock()}
+      });
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden&&wakeLockWanted&&!wakeLock)requestScreenWakeLock()});
       function stopOrderListeners(){ orderUnsubscribers.forEach(fn=>fn()); orderUnsubscribers=[]; }
+      function dayKey(timestamp=Date.now()){
+        const d=new Date(Number(timestamp)||Date.now());
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+      function orderDayOf(order){return order.orderDay || dayKey(order.createdAt)}
       function startOrderListeners(){
         stopOrderListeners(); orders.clear(); renderOrders();
         const ordersRef=ref(db,'orders');
-        orderUnsubscribers.push(onChildAdded(ordersRef,snap=>{orders.set(snap.key,snap.val());renderOrders();processPendingOrders()}));
-        orderUnsubscribers.push(onChildChanged(ordersRef,snap=>{orders.set(snap.key,snap.val());renderOrders()}));
+        const listenerStarted=Date.now();
+        get(ordersRef).then(initial=>{
+          const existingKeys=new Set(); initial.forEach(child=>existingKeys.add(child.key));
+          orderUnsubscribers.push(onChildAdded(ordersRef,snap=>{
+            const order=snap.val(); orders.set(snap.key,order); renderOrders();
+            if(!existingKeys.has(snap.key) && Number(order.createdAt||0)>=listenerStarted-5000) playOrderAlert();
+            existingKeys.add(snap.key); processPendingOrders();
+          }));
+          orderUnsubscribers.push(onChildChanged(ordersRef,snap=>{orders.set(snap.key,snap.val());renderOrders();processPendingOrders()}));
+        }).catch(()=>settingsMessage('Não foi possível carregar os pedidos. Confira as regras do Firebase.'));
       }
+      setInterval(()=>{renderOrders();processPendingOrders()},30000);
       onAuthStateChanged(auth,user=>{
         if(user && user.uid === ADMIN_UID){ currentAdmin=user; showSettings(); startOrderListeners(); }
         else {
@@ -700,7 +757,7 @@
         }
       });
       $('printer-auth-form').addEventListener('submit',async event=>{
-        event.preventDefault(); authMessage('Entrando...');
+        event.preventDefault(); unlockOrderSound(); authMessage('Entrando...');
         try{
           const credential=await signInWithEmailAndPassword(auth,$('printer-admin-email').value.trim(),$('printer-admin-pass').value);
           if(credential.user.uid!==ADMIN_UID){await signOut(auth);authMessage('Este usuário não está autorizado para este painel.');return;}
@@ -757,7 +814,7 @@
       }
       function receiptBytes(order,id,copy=false){
         const lines=[]; const now=order.createdAt?new Date(order.createdAt):new Date();
-        lines.push('BRASA BURGUER','PEDIDO '+String(id).slice(-8));
+        lines.push('BRASA BURGUER','PEDIDO #'+(Number(order.orderNumber)>0?order.orderNumber:String(id).slice(-8)));
         if(copy)lines.push('*** SEGUNDA VIA ***');
         lines.push(now.toLocaleString('pt-BR'),'-'.repeat(32));
         lines.push(...wrap('Cliente: '+order.customerName),...wrap('Endereco: '+order.address),'-'.repeat(32));
@@ -782,43 +839,69 @@
           await delay(18);
         }
       }
+      async function allocateOrderNumber(id,order){
+        if(Number(order.orderNumber)>0)return order;
+        const day=orderDayOf(order);
+        const counterRef=ref(db,`dailyCounters/${day}`);
+        const counter=await runTransaction(counterRef,current=>(Number(current)||0)+1);
+        if(!counter.committed)throw new Error('Não foi possível reservar o número do pedido.');
+        const assigned=Number(counter.snapshot.val());
+        const orderRef=ref(db,`orders/${id}`);
+        const result=await runTransaction(orderRef,current=>{
+          if(!current||Number(current.orderNumber)>0)return;
+          current.orderNumber=assigned;current.orderDay=day;return current;
+        });
+        const finalOrder=result.snapshot.val();
+        if(!finalOrder)throw new Error('Pedido não encontrado para numerar.');
+        orders.set(id,finalOrder);renderOrders();return finalOrder;
+      }
       async function processOrder(id){
-        if(processing.has(id)||!currentAdmin||!$('printer-auto-print').checked||!writeCharacteristic||!activeDevice?.gatt?.connected)return;
+        if(processing.has(id)||!currentAdmin)return;
         processing.add(id);
         try{
+          let order=orders.get(id);if(!order||orderDayOf(order)!==dayKey())return;
+          if(Number(order.orderNumber)<=0)order=await allocateOrderNumber(id,order);
+          if(!$('printer-auto-print').checked||!writeCharacteristic||!activeDevice?.gatt?.connected||order.printStatus!=='pending')return;
           const orderRef=ref(db,`orders/${id}`);
           const claim=await runTransaction(orderRef,current=>{
             if(!current||current.printStatus!=='pending')return;
             current.printStatus='printing';current.printingAt=Date.now();current.printingBy=currentAdmin.uid;current.printError='';return current;
           });
           if(!claim.committed||!claim.snapshot.exists())return;
-          const order=claim.snapshot.val(); orders.set(id,order);renderOrders();
+          order=claim.snapshot.val();orders.set(id,order);renderOrders();
           try{
             await writeReceipt(order,id,false);
             await update(orderRef,{printStatus:'printed',printedAt:Date.now(),printingAt:0,printingBy:'',printError:''});
-            settingsMessage('Pedido '+String(id).slice(-8)+' impresso automaticamente.');
+            settingsMessage('Pedido #'+order.orderNumber+' impresso automaticamente.');
           }catch(err){
             await update(orderRef,{printStatus:'error',printingAt:0,printingBy:'',printError:String(err.message||err).slice(0,180)});
-            settingsMessage('Falha ao imprimir pedido '+String(id).slice(-8)+'. Confira a impressora e use a segunda via.');
+            settingsMessage('Falha ao imprimir pedido #'+order.orderNumber+'. Confira a impressora e use a segunda via.');
           }
-        }catch(err){settingsMessage('Não foi possível atualizar o status de impressão. Confira as regras do Firebase.')}
+        }catch(err){settingsMessage('Não foi possível numerar/imprimir o pedido. Confira as regras do Firebase.');}
         finally{processing.delete(id)}
       }
-      function processPendingOrders(){for(const [id,order] of orders)if(order?.printStatus==='pending')processOrder(id)}
+      async function processPendingOrders(){
+        if(orderQueueBusy||!currentAdmin)return;
+        orderQueueBusy=true;
+        try{
+          const pending=Array.from(orders.entries()).filter(([,o])=>orderDayOf(o)===dayKey()&&(Number(o.orderNumber)<=0||o.printStatus==='pending')).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+          for(const [id] of pending)await processOrder(id);
+        }finally{orderQueueBusy=false}
+      }
       $('printer-auto-print').addEventListener('change',()=>{if($('printer-auto-print').checked)processPendingOrders()});
       window.brasaPrintCopy=async id=>{
         const order=orders.get(id);if(!order){settingsMessage('Pedido não encontrado.');return}
-        try{await writeReceipt(order,id,true);settingsMessage('Segunda via do pedido '+String(id).slice(-8)+' enviada para a impressora.')}
+        try{await writeReceipt(order,id,true);settingsMessage('Segunda via do pedido #'+(order.orderNumber||String(id).slice(-8))+' enviada para a impressora.')}
         catch(err){settingsMessage('Não foi possível imprimir a segunda via. Confira a conexão BLE.')}
       };
       function renderOrders(){
         const list=$('printer-orders-list'); if(!list)return;
-        const rows=Array.from(orders.entries()).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0)).slice(0,40);
+        const rows=Array.from(orders.entries()).filter(([,o])=>orderDayOf(o)===dayKey()).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0)).slice(0,40);
         if(!rows.length){list.innerHTML='<p class="printer-empty">Aguardando pedidos...</p>';return}
         list.replaceChildren();
         for(const [id,order] of rows){
           const card=document.createElement('article');card.className='printer-order-card';
-          const heading=document.createElement('strong');heading.textContent='Pedido '+String(id).slice(-8)+' · '+(order.printStatus==='printed'?'Impresso':order.printStatus==='printing'?'Imprimindo':order.printStatus==='error'?'Falha na impressão':'Na fila');card.appendChild(heading);
+          const heading=document.createElement('strong');heading.textContent='Pedido #'+(order.orderNumber||'...')+' · '+(order.printStatus==='printed'?'Impresso':order.printStatus==='printing'?'Imprimindo':order.printStatus==='error'?'Falha na impressão':'Na fila');card.appendChild(heading);
           const meta=document.createElement('div');meta.className='printer-order-meta';
           const itemLines=Object.values(order.items||{}).map(i=>`${i.qty}x ${i.name}`).join(' | ');
           meta.textContent=`${order.customerName||''} · ${order.address||''}\n${itemLines}\nTotal: R$ ${Number(order.total||0).toFixed(2).replace('.',',')} · ${order.payment||''}`;card.appendChild(meta);
