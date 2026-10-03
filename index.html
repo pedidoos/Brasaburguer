@@ -172,6 +172,27 @@
             color: #666;
             width: 100%;
         }
+
+        .printer-admin-trigger{display:block;margin:12px auto 0;padding:10px 14px;background:#1a1a1a;color:#f39c12;border:1px solid #5a3510;border-radius:10px;font-weight:700;cursor:pointer}
+        .printer-admin-overlay{display:none;position:fixed;inset:0;z-index:3000;background:#090909f5;overflow:auto;padding:20px 14px}
+        .printer-admin-card{width:min(100%,520px);margin:5vh auto;background:#151515;border:1px solid #393939;border-radius:18px;padding:22px;box-shadow:0 20px 60px #0009}
+        .printer-admin-card h2{color:#f39c12;margin:0 0 8px}.printer-admin-card p{color:#bbb;line-height:1.45;margin:8px 0 16px}
+        .printer-admin-card label{display:block;color:#ccc;font-size:.9rem;margin:13px 0 6px}
+        .printer-admin-card input{width:100%;padding:13px;background:#222;color:#fff;border:1px solid #444;border-radius:9px;font-size:16px}
+        .printer-admin-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}
+        .printer-admin-actions button{flex:1;min-width:140px;padding:13px 10px;border:0;border-radius:10px;background:#ff4d00;color:#fff;font-weight:700;cursor:pointer}
+        .printer-admin-actions button.secondary{background:#303030;border:1px solid #555}
+        .printer-status{background:#202020;border-radius:10px;padding:13px;margin:14px 0;color:#eee;overflow-wrap:anywhere}
+        .printer-warning{border-left:3px solid #f39c12;padding:9px 11px;background:#241e13;border-radius:6px;font-size:.86rem;color:#ddd}
+        .printer-service-list{font-size:.82rem;color:#bbb;max-height:150px;overflow:auto;word-break:break-all}
+        .printer-close{float:right;background:none;border:0;color:#aaa;font-size:1.4rem;cursor:pointer}
+        .printer-orders-list{display:grid;gap:10px;max-height:38vh;overflow:auto;margin:10px 0}
+        .printer-order-card{background:#202020;border:1px solid #383838;border-radius:11px;padding:12px;color:#eee}
+        .printer-order-card strong{color:#f39c12}.printer-order-meta{font-size:.82rem;color:#bbb;margin:5px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+        .printer-order-card button{padding:9px 12px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;font-weight:700;cursor:pointer}
+        .printer-empty{color:#aaa;text-align:center;padding:14px}
+        .printer-admin-message{min-height:1.3em;color:#ffb36b;font-size:.9rem;margin-top:8px}
+
     </style>
 </head>
 <body>
@@ -339,6 +360,7 @@
 
     <footer>
         &copy; Brasa Burguer. Todos os direitos reservados. <br> Desenvolvido por @maxwellber_63
+    <button type="button" class="printer-admin-trigger" onclick="openPrinterAdmin()">⚙ Configurações da impressora</button>
     </footer>
 
     <!-- Barra flutuante do carrinho -->
@@ -440,7 +462,49 @@
         </div>
     </div>
 
+
+    <div id="printer-admin-overlay" class="printer-admin-overlay" role="dialog" aria-modal="true" aria-label="Painel da loja">
+      <section class="printer-admin-card">
+        <button type="button" class="printer-close" aria-label="Fechar" onclick="closePrinterAdmin()">×</button>
+        <div id="printer-login-view">
+          <h2>Acesso da loja</h2>
+          <p>Entre com o usuário criado no Firebase para acessar a impressora e os pedidos.</p>
+          <form id="printer-auth-form">
+            <label for="printer-admin-email">E-mail</label><input id="printer-admin-email" type="email" autocomplete="username" required>
+            <label for="printer-admin-pass">Senha</label><input id="printer-admin-pass" type="password" autocomplete="current-password" required>
+            <div class="printer-admin-actions"><button id="printer-auth-submit" type="submit">Entrar</button></div>
+            <div id="printer-auth-message" class="printer-admin-message" role="status"></div>
+          </form>
+        </div>
+        <div id="printer-settings-view" hidden>
+          <h2>Pedidos e impressora</h2>
+          <p>Deixe esta tela aberta no aparelho da loja para receber e imprimir novos pedidos.</p>
+          <div class="printer-status" id="printer-connection-status">Impressora desconectada.</div>
+          <div class="printer-warning">A conexão do navegador exige HTTPS, navegador compatível e impressora Bluetooth BLE/GATT. O aparelho da loja precisa permanecer com esta página aberta. Impressoras Bluetooth clássico/serial podem não funcionar.</div>
+          <div class="printer-admin-actions">
+            <button type="button" onclick="connectPrinter()">Conectar impressora</button>
+            <button type="button" class="secondary" onclick="reconnectPrinter()">Reconectar</button>
+            <button type="button" class="secondary" onclick="disconnectPrinter()">Desconectar</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:9px;margin:15px 0;color:#eee"><input id="printer-auto-print" type="checkbox" checked style="width:18px;height:18px;accent-color:#ff4d00"> Imprimir pedidos novos automaticamente</label>
+          <div id="printer-settings-message" class="printer-admin-message" role="status"></div>
+          <h3 style="color:#f39c12;margin:18px 0 8px;font-size:1rem">Pedidos recentes</h3>
+          <div id="printer-orders-list" class="printer-orders-list"><p class="printer-empty">Aguardando pedidos...</p></div>
+          <div class="printer-admin-actions"><button type="button" class="secondary" onclick="printerLogout()">Sair do painel</button></div>
+        </div>
+      </section>
+    </div>
+
     <script>
+
+        function openPrinterAdmin(){document.getElementById('printer-admin-overlay').style.display='block';if(window.refreshBrasaPanel)window.refreshBrasaPanel()}
+        function closePrinterAdmin(){document.getElementById('printer-admin-overlay').style.display='none'}
+        function printerLogout(){if(window.brasaSignOut)window.brasaSignOut()}
+        function connectPrinter(){if(window.brasaConnectPrinter)window.brasaConnectPrinter()}
+        function reconnectPrinter(){if(window.brasaReconnectPrinter)window.brasaReconnectPrinter()}
+        function disconnectPrinter(){if(window.brasaDisconnectPrinter)window.brasaDisconnectPrinter()}
+        function printOrderCopy(id){if(window.brasaPrintCopy)window.brasaPrintCopy(id)}
+
         let cart = [];
         let currentSelectedBurger = { name: '', price: 0, desc: '' };
         const myWhatsApp = "5575981021584"; 
@@ -532,49 +596,236 @@
         function openModal() { document.getElementById('cart-modal').style.display = 'block'; }
         function closeModal() { document.getElementById('cart-modal').style.display = 'none'; }
 
-        function checkout() {
+        async function checkout() {
             const name = document.getElementById('cust-name').value.trim();
             const addr = document.getElementById('cust-address').value.trim();
             const payment = document.getElementById('payment-method').value;
             const changeValue = document.getElementById('cust-change').value;
-
-            if (name === "" || addr === "") {
-                alert("⚠️ Por favor, informe seu Nome e Endereço para entrega!");
-                return;
-            }
-
+            if (name === "" || addr === "") { alert("⚠️ Por favor, informe seu Nome e Endereço para entrega!"); return; }
+            if (!cart.length) { alert("Seu pedido está vazio."); return; }
             const total = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
-            
+            const order = {
+              createdAt: Date.now(), customerName: name, address: addr, payment,
+              changeFor: (payment === 'Dinheiro' && changeValue) ? Math.max(0, Number(changeValue)) : 0,
+              items: cart.map(i => ({name: String(i.name), qty: Number(i.qty), price: Number(i.price)})),
+              total: Number(total.toFixed(2)), printStatus: 'pending', printedAt: 0,
+              printingAt: 0, printingBy: '', printError: ''
+            };
             let message = `*PEDIDO BRASA BURGUER*%0A%0A`;
-            message += `*Cliente:* ${name}%0A`;
-            message += `*Endereço:* ${addr}%0A%0A`;
-            message += `*ITENS:*%0A`;
-            
-            cart.forEach(i => {
-                message += `• ${i.qty}x ${i.name} (R$ ${(i.price * i.qty).toFixed(2)})%0A`;
-            });
-            
-            message += `%0A*TOTAL:* R$ ${total.toFixed(2)}`;
-            message += `%0A*PAGAMENTO:* ${payment}`;
-            
+            message += `*Cliente:* ${encodeURIComponent(name)}%0A`;
+            message += `*Endereço:* ${encodeURIComponent(addr)}%0A%0A*ITENS:*%0A`;
+            cart.forEach(i => { message += `• ${i.qty}x ${encodeURIComponent(i.name)} (R$ ${(i.price * i.qty).toFixed(2)})%0A`; });
+            message += `%0A*TOTAL:* R$ ${total.toFixed(2)}%0A*PAGAMENTO:* ${encodeURIComponent(payment)}`;
             if(payment === 'Dinheiro' && changeValue) {
-                const valorPago = parseFloat(changeValue);
-                const troco = valorPago - total;
-                if(troco > 0) {
-                    message += `%0A*PAGAR COM:* R$ ${valorPago.toFixed(2)}`;
-                    message += `%0A*LEVAR DE TROCO:* R$ ${troco.toFixed(2)}`;
-                }
+              const valorPago = parseFloat(changeValue); const troco = valorPago - total;
+              if(troco > 0) message += `%0A*PAGAR COM:* R$ ${valorPago.toFixed(2)}%0A*LEVAR DE TROCO:* R$ ${troco.toFixed(2)}`;
             }
-            
             message += `%0A%0A*Frete a combinar*`;
-            
             const finalUrl = `https://api.whatsapp.com/send?phone=${myWhatsApp}&text=${message}`;
-            
-            const win = window.open(finalUrl, '_blank');
-            if (!win) {
-                window.location.href = finalUrl;
+            const win = window.open('about:blank','_blank');
+            try {
+              if(!window.submitBrasaOrder) throw new Error('O cardápio ainda está conectando ao sistema de pedidos. Aguarde alguns segundos e tente novamente.');
+              const orderId = await window.submitBrasaOrder(order);
+              if(win) win.location.href=finalUrl; else window.location.href=finalUrl;
+              alert('Pedido registrado. O WhatsApp será aberto para você enviar a mensagem à loja.');
+              cart=[]; updateUI(); closeModal();
+              return orderId;
+            } catch(err) {
+              if(win) win.close();
+              alert('Não foi possível registrar o pedido no cardápio. Confira a conexão e tente novamente.');
+              console.error(err);
             }
         }
+    </script>
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
+      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
+      import { getDatabase, ref, push, set, onChildAdded, onChildChanged, runTransaction, update } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
+
+      const firebaseConfig = {
+        apiKey: 'AIzaSyC4tlqb5zpkE-9dzdk1Jl_01RGGT2xBjJI',
+        authDomain: 'brasaburguer-566d8.firebaseapp.com',
+        databaseURL: 'https://brasaburguer-566d8-default-rtdb.firebaseio.com',
+        projectId: 'brasaburguer-566d8',
+        storageBucket: 'brasaburguer-566d8.firebasestorage.app',
+        messagingSenderId: '659784402616',
+        appId: '1:659784402616:web:59a24b7f477f77a6f3164d'
+      };
+      const ADMIN_UID = '8XLpCAJVngOCGBgm4gbdjHZ7vkz2';
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+      let currentAdmin = null;
+      let orderUnsubscribers = [];
+      let activeDevice = null;
+      let writeCharacteristic = null;
+      const orders = new Map();
+      const processing = new Set();
+      const printerStoreKey = 'brasaPrinterDevice_v2';
+      const printServices = [
+        '0000ffe0-0000-1000-8000-00805f9b34fb',
+        '000018f0-0000-1000-8000-00805f9b34fb',
+        '0000fff0-0000-1000-8000-00805f9b34fb',
+        '0000ae30-0000-1000-8000-00805f9b34fb',
+        '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
+      ];
+      const $ = id => document.getElementById(id);
+      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+      window.submitBrasaOrder = async order => {
+        const orderRef = push(ref(db, 'orders'));
+        await set(orderRef, order);
+        return orderRef.key;
+      };
+      function authMessage(text){ $('printer-auth-message').textContent=text||''; }
+      function settingsMessage(text){ $('printer-settings-message').textContent=text||''; }
+      function showLogin(){ $('printer-login-view').hidden=false; $('printer-settings-view').hidden=true; }
+      function showSettings(){ $('printer-login-view').hidden=true; $('printer-settings-view').hidden=false; updatePrinterStatus(); }
+      function updatePrinterStatus(){
+        const box=$('printer-connection-status');
+        box.textContent=activeDevice?.gatt?.connected ? `Conectada: ${activeDevice.name||'Impressora Bluetooth'}` : 'Impressora desconectada. Os pedidos ficam na fila até conectar.';
+      }
+      function stopOrderListeners(){ orderUnsubscribers.forEach(fn=>fn()); orderUnsubscribers=[]; }
+      function startOrderListeners(){
+        stopOrderListeners(); orders.clear(); renderOrders();
+        const ordersRef=ref(db,'orders');
+        orderUnsubscribers.push(onChildAdded(ordersRef,snap=>{orders.set(snap.key,snap.val());renderOrders();processPendingOrders()}));
+        orderUnsubscribers.push(onChildChanged(ordersRef,snap=>{orders.set(snap.key,snap.val());renderOrders()}));
+      }
+      onAuthStateChanged(auth,user=>{
+        if(user && user.uid === ADMIN_UID){ currentAdmin=user; showSettings(); startOrderListeners(); }
+        else {
+          currentAdmin=null; stopOrderListeners();
+          if(user) signOut(auth).then(()=>authMessage('Esta conta não tem autorização para o painel.'));
+          showLogin();
+        }
+      });
+      $('printer-auth-form').addEventListener('submit',async event=>{
+        event.preventDefault(); authMessage('Entrando...');
+        try{
+          const credential=await signInWithEmailAndPassword(auth,$('printer-admin-email').value.trim(),$('printer-admin-pass').value);
+          if(credential.user.uid!==ADMIN_UID){await signOut(auth);authMessage('Este usuário não está autorizado para este painel.');return;}
+          $('printer-admin-pass').value=''; authMessage(''); showSettings(); startOrderListeners();
+        }catch(err){
+          authMessage(err.code==='auth/unauthorized-domain'?'Este endereço do site ainda precisa ser autorizado no Firebase.':'E-mail ou senha inválidos, ou conexão indisponível.');
+        }
+      });
+      window.refreshBrasaPanel=()=>{if(currentAdmin)showSettings();else showLogin()};
+      window.brasaSignOut=async()=>{stopOrderListeners();await signOut(auth);currentAdmin=null;showLogin()};
+      window.brasaConnectPrinter=async()=>{
+        if(!currentAdmin){settingsMessage('Entre no painel antes de conectar.');return}
+        if(!navigator.bluetooth){settingsMessage('Web Bluetooth não está disponível. Use Chrome/Edge em HTTPS.');return}
+        settingsMessage('Escolha a impressora na janela Bluetooth...');
+        try{
+          const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:printServices});
+          await connectDevice(device);
+        }catch(err){settingsMessage(err.name==='NotFoundError'?'Nenhuma impressora selecionada.':(err.message||'Não foi possível conectar; confirme que é BLE compatível.'))}
+      };
+      async function connectDevice(device){
+        activeDevice=device; writeCharacteristic=null;
+        device.addEventListener('gattserverdisconnected',()=>{writeCharacteristic=null;updatePrinterStatus();settingsMessage('A impressora foi desconectada.')});
+        const server=await device.gatt.connect();
+        localStorage.setItem(printerStoreKey,JSON.stringify({id:device.id,name:device.name||'Impressora Bluetooth'}));
+        let services=[];
+        try{services=await server.getPrimaryServices()}catch(e){throw new Error('Conectada, mas sem acesso aos serviços BLE de impressão.')}
+        for(const service of services){
+          let chars=[];try{chars=await service.getCharacteristics()}catch(e){}
+          const writable=chars.find(ch=>ch.properties.write || ch.properties.writeWithoutResponse);
+          if(writable){writeCharacteristic=writable;break}
+        }
+        updatePrinterStatus();
+        if(!writeCharacteristic){settingsMessage('Conectou, mas não encontrei característica BLE gravável para impressão.');return}
+        settingsMessage('Impressora conectada e pronta.'); processPendingOrders();
+      }
+      window.brasaReconnectPrinter=async()=>{
+        settingsMessage('');
+        try{
+          if(!navigator.bluetooth?.getDevices)throw new Error('Este navegador não permite reconectar automaticamente. Use “Conectar impressora”.');
+          const saved=JSON.parse(localStorage.getItem(printerStoreKey)||'null');
+          if(!saved)throw new Error('Ainda não há impressora salva.');
+          const devices=await navigator.bluetooth.getDevices();
+          const device=devices.find(d=>d.id===saved.id);
+          if(!device)throw new Error('Permissão do dispositivo não encontrada. Toque em “Conectar impressora”.');
+          await connectDevice(device);
+        }catch(err){settingsMessage(err.message||'Não foi possível reconectar.')}
+      };
+      window.brasaDisconnectPrinter=()=>{if(activeDevice?.gatt?.connected)activeDevice.gatt.disconnect();else settingsMessage('Não há impressora conectada.');updatePrinterStatus()};
+      function ascii(text){return String(text??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E\n]/g,'?')}
+      function wrap(text,width=32){
+        const words=ascii(text).split(/\s+/);const lines=[];let line='';
+        for(const word of words){if(!word)continue;if((line+' '+word).trim().length>width){if(line)lines.push(line);line=word.slice(0,width)}else line=(line+' '+word).trim()}
+        if(line)lines.push(line);return lines;
+      }
+      function receiptBytes(order,id,copy=false){
+        const lines=[]; const now=order.createdAt?new Date(order.createdAt):new Date();
+        lines.push('BRASA BURGUER','PEDIDO '+String(id).slice(-8));
+        if(copy)lines.push('*** SEGUNDA VIA ***');
+        lines.push(now.toLocaleString('pt-BR'),'-'.repeat(32));
+        lines.push(...wrap('Cliente: '+order.customerName),...wrap('Endereco: '+order.address),'-'.repeat(32));
+        for(const item of Object.values(order.items||{})){
+          lines.push(...wrap(`${item.qty}x ${item.name}`));
+          lines.push(`  R$ ${(Number(item.price)*Number(item.qty)).toFixed(2).replace('.',',')}`);
+        }
+        lines.push('-'.repeat(32),`TOTAL R$ ${Number(order.total||0).toFixed(2).replace('.',',')}`,'Pagamento: '+ascii(order.payment));
+        if(Number(order.changeFor)>0)lines.push('Troco para R$ '+Number(order.changeFor).toFixed(2).replace('.',','));
+        lines.push('Frete a combinar','Obrigado pela preferencia!','','','');
+        const text=lines.join('\n');
+        return new Uint8Array([0x1b,0x40,0x1b,0x61,0x01,...new TextEncoder().encode('BRASA BURGUER\n'),0x1b,0x61,0x00,...new TextEncoder().encode(text.replace(/^BRASA BURGUER\n/,'')),0x1d,0x56,0x01]);
+      }
+      async function writeReceipt(order,id,copy=false){
+        if(!activeDevice?.gatt?.connected || !writeCharacteristic)throw new Error('Conecte uma impressora BLE compatível antes.');
+        const bytes=receiptBytes(order,id,copy);
+        for(let i=0;i<bytes.length;i+=20){
+          const chunk=bytes.slice(i,i+20);
+          if(writeCharacteristic.properties.writeWithoutResponse && writeCharacteristic.writeValueWithoutResponse) await writeCharacteristic.writeValueWithoutResponse(chunk);
+          else if(writeCharacteristic.writeValueWithResponse) await writeCharacteristic.writeValueWithResponse(chunk);
+          else await writeCharacteristic.writeValue(chunk);
+          await delay(18);
+        }
+      }
+      async function processOrder(id){
+        if(processing.has(id)||!currentAdmin||!$('printer-auto-print').checked||!writeCharacteristic||!activeDevice?.gatt?.connected)return;
+        processing.add(id);
+        try{
+          const orderRef=ref(db,`orders/${id}`);
+          const claim=await runTransaction(orderRef,current=>{
+            if(!current||current.printStatus!=='pending')return;
+            current.printStatus='printing';current.printingAt=Date.now();current.printingBy=currentAdmin.uid;current.printError='';return current;
+          });
+          if(!claim.committed||!claim.snapshot.exists())return;
+          const order=claim.snapshot.val(); orders.set(id,order);renderOrders();
+          try{
+            await writeReceipt(order,id,false);
+            await update(orderRef,{printStatus:'printed',printedAt:Date.now(),printingAt:0,printingBy:'',printError:''});
+            settingsMessage('Pedido '+String(id).slice(-8)+' impresso automaticamente.');
+          }catch(err){
+            await update(orderRef,{printStatus:'error',printingAt:0,printingBy:'',printError:String(err.message||err).slice(0,180)});
+            settingsMessage('Falha ao imprimir pedido '+String(id).slice(-8)+'. Confira a impressora e use a segunda via.');
+          }
+        }catch(err){settingsMessage('Não foi possível atualizar o status de impressão. Confira as regras do Firebase.')}
+        finally{processing.delete(id)}
+      }
+      function processPendingOrders(){for(const [id,order] of orders)if(order?.printStatus==='pending')processOrder(id)}
+      $('printer-auto-print').addEventListener('change',()=>{if($('printer-auto-print').checked)processPendingOrders()});
+      window.brasaPrintCopy=async id=>{
+        const order=orders.get(id);if(!order){settingsMessage('Pedido não encontrado.');return}
+        try{await writeReceipt(order,id,true);settingsMessage('Segunda via do pedido '+String(id).slice(-8)+' enviada para a impressora.')}
+        catch(err){settingsMessage('Não foi possível imprimir a segunda via. Confira a conexão BLE.')}
+      };
+      function renderOrders(){
+        const list=$('printer-orders-list'); if(!list)return;
+        const rows=Array.from(orders.entries()).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0)).slice(0,40);
+        if(!rows.length){list.innerHTML='<p class="printer-empty">Aguardando pedidos...</p>';return}
+        list.replaceChildren();
+        for(const [id,order] of rows){
+          const card=document.createElement('article');card.className='printer-order-card';
+          const heading=document.createElement('strong');heading.textContent='Pedido '+String(id).slice(-8)+' · '+(order.printStatus==='printed'?'Impresso':order.printStatus==='printing'?'Imprimindo':order.printStatus==='error'?'Falha na impressão':'Na fila');card.appendChild(heading);
+          const meta=document.createElement('div');meta.className='printer-order-meta';
+          const itemLines=Object.values(order.items||{}).map(i=>`${i.qty}x ${i.name}`).join(' | ');
+          meta.textContent=`${order.customerName||''} · ${order.address||''}\n${itemLines}\nTotal: R$ ${Number(order.total||0).toFixed(2).replace('.',',')} · ${order.payment||''}`;card.appendChild(meta);
+          const button=document.createElement('button');button.type='button';button.textContent='Imprimir segunda via';button.addEventListener('click',()=>window.brasaPrintCopy(id));card.appendChild(button);
+          list.appendChild(card);
+        }
+      }
     </script>
 </body>
 </html>
